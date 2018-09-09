@@ -7,3 +7,5 @@ Microsserviço para a extração de texto de notas fiscais escaneadas.
   
 ## Uso
     sudo docker-compose -f docker-compose-dev.yml up
+    
+As rotas estarão disponíveis através de localhost:5001
