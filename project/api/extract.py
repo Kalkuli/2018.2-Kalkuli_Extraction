@@ -1,5 +1,14 @@
-from flask import Flask, request
 import pytesseract
+import os
+from flask import Flask, request, redirect, url_for
+from werkzeug.utils import secure_filename
+from project import app
+
+
+UPLOAD_FOLDER = os.path.relpath('../assets')
+ALLOWED_EXTENSIONS = set(['pdf'])
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
     return '.' in filename and \
