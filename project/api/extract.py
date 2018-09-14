@@ -2,6 +2,7 @@ import pytesseract
 import os
 from flask import Flask, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException, NotFound, BadRequest, NotAcceptable
 from project import app
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -11,6 +12,14 @@ UPLOAD_FOLDER = os.path.relpath('./../assets')
 ALLOWED_EXTENSIONS = set(['pdf'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def view(error):
+    if error == -1:
+        raise NotFound()
+    elif error == -2:
+        raise BadRequest()
+    elif error == -3:
+        raise NotAcceptable()
 
 def extract_pdf(convert):
     text_obj = {}
@@ -30,21 +39,24 @@ def allowed_file(filename):
 def central():
     if request.method == 'POST':
         if 'file' not in request.files:
-            return jsonify({
-                'message': 'File not found',
-                'code': 400
-            })
+            error = -1
+            try:
+                return view(error)
+            except HTTPException as e:
+                return e
         file = request.files['file']
         if file.filename == '':
-            return jsonify({
-                'message': 'File not sent', 
-                'code': 400
-            })
+            error = -2
+            try:
+                return view(error)
+            except HTTPException as e:
+                return e
         if not allowed_file(file.filename):
-            return jsonify({
-                'message': 'Not allowed file extension',
-                'code': 400
-            })
+            error = -3
+            try:
+                return view(error)
+            except HTTPException as e:
+                return e
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             convert = convert_pdf(file)
@@ -52,6 +64,3 @@ def central():
             return jsonify({
                 'raw_text': json_text
             })
-
-#passar returns pra json
-#desacoplar código 
