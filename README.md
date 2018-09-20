@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Kalkuli/2018.2-Kalkuli_Interpretation.svg?branch=master
+)](https://travis-ci.com/Kalkuli/2018.2-Kalkuli_Interpretation)
+
 # 2018.2-Kalkuli_Extraction
 Microsserviço para a extração de texto de notas fiscais escaneadas.
 
