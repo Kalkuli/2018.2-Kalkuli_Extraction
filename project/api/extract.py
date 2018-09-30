@@ -13,6 +13,7 @@ ALLOWED_EXTENSIONS = set(['pdf'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+
 def view(error):
     if error == -1:
         raise NotFound()
@@ -21,19 +22,23 @@ def view(error):
     elif error == -3:
         raise NotAcceptable()
 
+
 def extract_pdf(convert):
     text_obj = {}
-    text_obj['text'] = []
+    text_obj['raw_text'] = ""
     for page in convert:
-        text_obj['text'].append(pytesseract.image_to_string(page, lang='por'))
+        text_obj['raw_text'] += pytesseract.image_to_string(page, lang='por')
     return text_obj
+
 
 def convert_pdf(file):
     return convert_from_bytes(file.read())
 
+
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @app.route('/extract', methods=['POST'])
 def central():
@@ -61,6 +66,4 @@ def central():
             filename = secure_filename(file.filename)
             convert = convert_pdf(file)
             json_text = extract_pdf(convert)
-            return jsonify({
-                'raw_text': json_text
-            })
+            return jsonify(json_text)
