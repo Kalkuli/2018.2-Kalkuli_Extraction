@@ -14,3 +14,6 @@ script:
   - docker-compose -f docker-compose-dev.yml run base python3.6 manage.py test
 after_script:
   - docker-compose -f docker-compose-dev.yml down
+after_success:
+  - chmod +x ./deploy.sh
+  - ./deploy.sh
