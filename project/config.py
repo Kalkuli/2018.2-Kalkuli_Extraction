@@ -1,12 +1,12 @@
 class BaseConfig:
-    """Base configuration"""
     TESTING = False
 
-class DevConfig(BaseConfig):
-    pass
+class DevelopmentConfig(BaseConfig):
+    THIS = 'Development'
 
 class TestingConfig(BaseConfig):
     TESTING = True
+    THIS = 'Testing'
 
 class ProductionConfig(BaseConfig):
-    pass
+    THIS = 'Production'

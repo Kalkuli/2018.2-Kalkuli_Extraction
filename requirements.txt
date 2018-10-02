@@ -3,3 +3,5 @@ pdf2image
 Pillow
 pytesseract
 opencv-python
+Flask-Testing==0.6.2
+coverage==4.5.1
