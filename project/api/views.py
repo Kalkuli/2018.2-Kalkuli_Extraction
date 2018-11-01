@@ -13,6 +13,13 @@ ALLOWED_EXTENSIONS = set(['pdf'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+@shared_task
+def extraction_task(file):
+    convert = convert_pdf(file)
+    json_text = extract_pdf(convert)
+    return {
+        "raw_text": json_text
+    }
 
 def view(error):
     if error == -1:
@@ -64,6 +71,25 @@ def central():
                 return e
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            convert = convert_pdf(file)
-            json_text = extract_pdf(convert)
-            return jsonify(json_text)
+            task = extraction_task.delay(file)
+            return jsonify({'location': url_for('',
+                                            task_id=task.id)}), 202
+
+@app.route('/status_extraction/<task_id>')
+def get_status(task_id):
+    task = extraction_task.AsyncResult(task_id)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state
+        }
+    elif task.state != 'FAILURE':
+        response = {
+            'state': task.state
+        }
+        if 'raw_text' in task.info:
+            response['raw_text'] = task.info['raw_text']
+    else:
+        response = {
+            'state': task.state
+        }
+    return jsonify(response), 200
