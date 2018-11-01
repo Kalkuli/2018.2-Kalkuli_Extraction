@@ -2,7 +2,8 @@ Flask==1.0.2
 pdf2image
 Pillow
 pytesseract
-opencv-python
 Flask-Testing==0.6.2
 coverage==4.5.1
 gunicorn==19.8.1
+Celery
+redis

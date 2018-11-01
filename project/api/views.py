@@ -1,24 +1,28 @@
 import pytesseract
-import os
+import os, time
+import pickle
 from flask import Flask, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import HTTPException, NotFound, BadRequest, NotAcceptable
 from project import app
 from pdf2image import convert_from_bytes
 from PIL import Image
+from celery import shared_task
 
 
-UPLOAD_FOLDER = os.path.relpath('./../assets')
+UPLOAD_FOLDER = os.path.relpath('./project/assets')
 ALLOWED_EXTENSIONS = set(['pdf'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @shared_task
-def extraction_task(file):
+def extraction_task(filename):
+    file = open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb')
     convert = convert_pdf(file)
     json_text = extract_pdf(convert)
     return {
-        "raw_text": json_text
+        "json_text": json_text,
+        "filename": filename
     }
 
 def view(error):
@@ -71,9 +75,12 @@ def central():
                 return e
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            task = extraction_task.delay(file)
-            return jsonify({'location': url_for('',
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            task = extraction_task.delay(filename)
+            # json_text = extract_pdf(convert)
+            return jsonify({'location': url_for('get_status',
                                             task_id=task.id)}), 202
+            # return jsonify({'raw_text': json_text}), 200
 
 @app.route('/status_extraction/<task_id>')
 def get_status(task_id):
@@ -86,8 +93,9 @@ def get_status(task_id):
         response = {
             'state': task.state
         }
-        if 'raw_text' in task.info:
-            response['raw_text'] = task.info['raw_text']
+        if 'raw_text' in task.info['json_text']:
+            response['raw_text'] = task.info['json_text']['raw_text']
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], task.info['filename']))
     else:
         response = {
             'state': task.state
