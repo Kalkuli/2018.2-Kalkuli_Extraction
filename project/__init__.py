@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify
+from flask_cors import CORS
 from celery import Celery
 
 def make_celery(app):
@@ -25,3 +26,5 @@ celery = make_celery(app)
 app.config.from_object('project.config.DevelopmentConfig')
 
 import project.api.views
+
+CORS(app)

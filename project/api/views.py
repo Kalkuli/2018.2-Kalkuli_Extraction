@@ -17,6 +17,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @shared_task
 def extraction_task(filename):
+    while not os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+        time.sleep(0.1)
     file = open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb')
     convert = convert_pdf(file)
     json_text = extract_pdf(convert)
