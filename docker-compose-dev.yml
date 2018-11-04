@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile-dev
     volumes:
-      - '.:/app'
+      - './:/usr/src/app'
     command: celery -A project.celery worker
     environment:
       - FLASK_APP=project/__init__.py
