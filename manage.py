@@ -1,6 +1,3 @@
-from flask.cli import FlaskGroup
-from project import app
-import unittest
 import coverage
 
 COV = coverage.coverage(
@@ -12,6 +9,10 @@ COV = coverage.coverage(
     ]
 )
 COV.start()
+
+from flask.cli import FlaskGroup
+from project import app
+import unittest
 
 cli = FlaskGroup(app)
 
