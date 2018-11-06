@@ -17,6 +17,9 @@ services:
       - APP_SETTINGS=project.config.DevelopmentConfig
       - CELERY_BROKER_URL=redis://redis:6379
       - CELERY_RESULT_BACKEND=redis://redis:6379
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
   celery:
     build:
       context: .
@@ -30,6 +33,9 @@ services:
       - APP_SETTINGS=project.config.DevelopmentConfig
       - CELERY_BROKER_URL=redis://redis:6379
       - CELERY_RESULT_BACKEND=redis://redis:6379
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
   redis:
     image: redis
     command: redis-server
