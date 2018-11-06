@@ -9,6 +9,7 @@ def make_celery(app):
         backend=os.environ.get('CELERY_RESULT_BACKEND'),
         broker=os.environ.get('CELERY_BROKER_URL')
     )
+    celery.conf.update(broker_pool_limit=0)
     celery.conf.update(app.config)
 
     class ContextTask(celery.Task):

@@ -1,0 +1,9 @@
+build:
+  docker:
+    web: Dockerfile-prod
+run:
+  web: gunicorn -b 0.0.0.0:$PORT manage:app
+  worker:
+    command: 
+      - celery -A project.celery worker
+    image: web
