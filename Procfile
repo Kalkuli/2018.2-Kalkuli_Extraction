@@ -1,0 +1,1 @@
+worker: celery -A project.celery worker
