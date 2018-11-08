@@ -8,10 +8,10 @@ from PIL import Image
 from celery import shared_task
 from project.api.extraction import Extraction
 from project.api.s3_utils import S3Utils
+from project.api.helpers import allowed_file
 
 
 UPLOAD_FOLDER = os.path.relpath('./project/assets')
-ALLOWED_EXTENSIONS = set(['pdf'])
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -27,10 +27,6 @@ def extraction_task(filename):
         "filename": filename
     }
 
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route('/extract', methods=['POST'])
 def extract():
     if 'file' not in request.files:
@@ -44,7 +40,6 @@ def extract():
             "Status": "Fail",
             "Error": "Extension not allowed. Use PDF."
         }), 415
-
     filename = secure_filename(file.filename)
     s3 = S3Utils()
     s3.upload_to_s3(file)

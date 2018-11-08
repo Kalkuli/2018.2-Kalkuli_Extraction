@@ -9,7 +9,7 @@ class S3Utils:
                             aws_access_key_id=os.environ.get("S3_ACCESS_KEY"),
                             aws_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY")
                         )
-    
+
     def upload_to_s3(self, file):
         try:
             self.instance.upload_fileobj(
