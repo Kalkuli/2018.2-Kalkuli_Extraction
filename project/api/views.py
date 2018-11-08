@@ -8,6 +8,8 @@ from project import app
 from pdf2image import convert_from_bytes
 from PIL import Image
 from celery import shared_task
+import boto3
+import botocore
 
 
 UPLOAD_FOLDER = os.path.relpath('./project/assets')
@@ -16,11 +18,22 @@ ALLOWED_EXTENSIONS = set(['pdf'])
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
+def get_s3_instance():
+    return boto3.client(
+        "s3",
+        aws_access_key_id=os.environ.get("S3_ACCESS_KEY"),
+        aws_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY")
+    )
+
+
 @shared_task
 def extraction_task(filename):
-    while not os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
-        time.sleep(0.1)
-    file = open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb')
+    s3 = get_s3_instance()
+    response = s3.get_object(
+        Bucket=os.environ.get("S3_BUCKET_NAME"),
+        Key=filename
+    )
+    file = response['Body'].read()
     convert = convert_pdf(file)
     json_text = extract_pdf(convert)
     return {
@@ -38,12 +51,25 @@ def extract_pdf(convert):
 
 
 def convert_pdf(file):
-    return convert_from_bytes(file.read())
+    return convert_from_bytes(file)
 
 
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def upload_to_s3(file):
+    s3 = get_s3_instance()
+
+    try:
+        s3.upload_fileobj(
+            file,
+            os.environ.get("S3_BUCKET_NAME"),
+            file.filename
+        )
+    except Exception as e:
+        return e
 
 
 @app.route('/extract', methods=['POST'])
@@ -61,7 +87,7 @@ def extract():
         }), 415
 
     filename = secure_filename(file.filename)
-    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    upload_to_s3(file)
     task = extraction_task.delay(filename)
     return jsonify({'location': url_for('get_status',
                                         task_id=task.id)}), 202
@@ -80,8 +106,6 @@ def get_status(task_id):
         }
         if 'raw_text' in task.info['json_text']:
             response['raw_text'] = task.info['json_text']['raw_text']
-            os.remove(os.path.join(
-                app.config['UPLOAD_FOLDER'], task.info['filename']))
     else:
         response = {
             'state': task.state

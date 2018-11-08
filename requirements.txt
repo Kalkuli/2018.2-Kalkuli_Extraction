@@ -8,3 +8,4 @@ coverage==4.5.1
 gunicorn==19.8.1
 Celery
 redis
+boto3
