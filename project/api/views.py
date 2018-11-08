@@ -1,15 +1,14 @@
-import pytesseract
 import os
 import time
 import pickle
 from flask import Flask, request, url_for, jsonify
 from werkzeug.utils import secure_filename
 from project import app
-from pdf2image import convert_from_bytes
 from PIL import Image
 from celery import shared_task
 import boto3
 import botocore
+from project.api.extraction import Extraction
 
 
 UPLOAD_FOLDER = os.path.relpath('./project/assets')
@@ -34,24 +33,12 @@ def extraction_task(filename):
         Key=filename
     )
     file = response['Body'].read()
-    convert = convert_pdf(file)
-    json_text = extract_pdf(convert)
+    extraction = Extraction(file)
+    json_text = extraction.extract()
     return {
         "json_text": json_text,
         "filename": filename
     }
-
-
-def extract_pdf(convert):
-    text_obj = {}
-    text_obj['raw_text'] = ""
-    for page in convert:
-        text_obj['raw_text'] += pytesseract.image_to_string(page, lang='por')
-    return text_obj
-
-
-def convert_pdf(file):
-    return convert_from_bytes(file)
 
 
 def allowed_file(filename):
