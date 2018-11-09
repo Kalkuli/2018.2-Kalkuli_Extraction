@@ -1,78 +1,38 @@
-import pytesseract
 import os
 import time
 import pickle
-from flask import Flask, request, url_for, jsonify
-from werkzeug.utils import secure_filename
-from project import app
-from pdf2image import convert_from_bytes
+
 from PIL import Image
+
+from flask import Flask, request, url_for, jsonify, Blueprint
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
 from celery import shared_task
-import boto3
-import botocore
+
+from project.api.extraction import Extraction
+from project.api.s3_utils import S3Utils
+from project.api.helpers import allowed_file
 
 
-UPLOAD_FOLDER = os.path.relpath('./project/assets')
-ALLOWED_EXTENSIONS = set(['pdf'])
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
-def get_s3_instance():
-    return boto3.client(
-        "s3",
-        aws_access_key_id=os.environ.get("S3_ACCESS_KEY"),
-        aws_secret_access_key=os.environ.get("S3_SECRET_ACCESS_KEY")
-    )
+extraction_blueprint = Blueprint('extraction', __name__)
+CORS(extraction_blueprint)
 
 
 @shared_task
 def extraction_task(filename):
-    s3 = get_s3_instance()
-    response = s3.get_object(
-        Bucket=os.environ.get("S3_BUCKET_NAME"),
-        Key=filename
-    )
+    s3 = S3Utils()
+    response = s3.get_file(filename)
     file = response['Body'].read()
-    convert = convert_pdf(file)
-    json_text = extract_pdf(convert)
+    extraction = Extraction(file)
+    json_text = extraction.extract()
     return {
         "json_text": json_text,
         "filename": filename
     }
 
 
-def extract_pdf(convert):
-    text_obj = {}
-    text_obj['raw_text'] = ""
-    for page in convert:
-        text_obj['raw_text'] += pytesseract.image_to_string(page, lang='por')
-    return text_obj
-
-
-def convert_pdf(file):
-    return convert_from_bytes(file)
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def upload_to_s3(file):
-    s3 = get_s3_instance()
-
-    try:
-        s3.upload_fileobj(
-            file,
-            os.environ.get("S3_BUCKET_NAME"),
-            file.filename
-        )
-    except Exception as e:
-        return e
-
-
-@app.route('/extract', methods=['POST'])
+@extraction_blueprint.route('/extract', methods=['POST'])
 def extract():
     if 'file' not in request.files:
         return jsonify({
@@ -85,15 +45,15 @@ def extract():
             "Status": "Fail",
             "Error": "Extension not allowed. Use PDF."
         }), 415
-
     filename = secure_filename(file.filename)
-    upload_to_s3(file)
+    s3 = S3Utils()
+    s3.upload_to_s3(file)
     task = extraction_task.delay(filename)
-    return jsonify({'location': url_for('get_status',
+    return jsonify({'location': url_for('extraction.get_status',
                                         task_id=task.id)}), 202
 
 
-@app.route('/status_extraction/<task_id>')
+@extraction_blueprint.route('/status_extraction/<task_id>')
 def get_status(task_id):
     task = extraction_task.AsyncResult(task_id)
     if task.state == 'PENDING':

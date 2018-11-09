@@ -1,7 +1,7 @@
 import os
 from flask import Flask, jsonify
-from flask_cors import CORS
 from celery import Celery
+
 
 def make_celery(app):
     celery = Celery(
@@ -20,12 +20,15 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
-app = Flask(__name__)
 
+# Instantiate the app and Celery
+app = Flask(__name__)
 celery = make_celery(app)
 
-app.config.from_object('project.config.DevelopmentConfig')
+# Set Configuration
+app_settings = os.getenv('APP_SETTINGS')
+app.config.from_object(app_settings)
 
-import project.api.views
-
-CORS(app)
+# Register blueprint(s)
+from project.api.views import extraction_blueprint
+app.register_blueprint(extraction_blueprint)
