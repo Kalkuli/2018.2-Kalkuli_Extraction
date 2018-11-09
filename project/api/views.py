@@ -1,19 +1,23 @@
 import os
 import time
 import pickle
-from flask import Flask, request, url_for, jsonify
-from werkzeug.utils import secure_filename
-from project import app
+
 from PIL import Image
+
+from flask import Flask, request, url_for, jsonify, Blueprint
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
 from celery import shared_task
+
 from project.api.extraction import Extraction
 from project.api.s3_utils import S3Utils
 from project.api.helpers import allowed_file
 
 
-UPLOAD_FOLDER = os.path.relpath('./project/assets')
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+extraction_blueprint = Blueprint('extraction', __name__)
+CORS(extraction_blueprint)
+
 
 @shared_task
 def extraction_task(filename):
@@ -27,7 +31,8 @@ def extraction_task(filename):
         "filename": filename
     }
 
-@app.route('/extract', methods=['POST'])
+
+@extraction_blueprint.route('/extract', methods=['POST'])
 def extract():
     if 'file' not in request.files:
         return jsonify({
@@ -44,10 +49,11 @@ def extract():
     s3 = S3Utils()
     s3.upload_to_s3(file)
     task = extraction_task.delay(filename)
-    return jsonify({'location': url_for('get_status',
+    return jsonify({'location': url_for('extraction.get_status',
                                         task_id=task.id)}), 202
 
-@app.route('/status_extraction/<task_id>')
+
+@extraction_blueprint.route('/status_extraction/<task_id>')
 def get_status(task_id):
     task = extraction_task.AsyncResult(task_id)
     if task.state == 'PENDING':
