@@ -14,3 +14,35 @@ services:
       - FLASK_ENV=development
       - LC_ALL=C.UTF-8
       - LANG=C.UTF-8
+      - APP_SETTINGS=project.config.DevelopmentConfig
+      - CELERY_BROKER_URL=redis://redis:6379
+      - CELERY_RESULT_BACKEND=redis://redis:6379
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    volumes:
+      - './:/usr/src/app'
+    command: celery -A project.celery worker
+    environment:
+      - FLASK_APP=project/__init__.py
+      - FLASK_ENV=development
+      - APP_SETTINGS=project.config.DevelopmentConfig
+      - CELERY_BROKER_URL=redis://redis:6379
+      - CELERY_RESULT_BACKEND=redis://redis:6379
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+  redis:
+    image: redis
+    command: redis-server
+    volumes:
+      - 'redis:/data'
+    ports:
+      - '6000:6379'
+
+volumes:
+  redis:
