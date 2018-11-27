@@ -5,5 +5,5 @@ run:
   web: gunicorn -b 0.0.0.0:$PORT manage:app
   worker:
     command: 
-      - celery -A project.celery worker
+      - celery -A project.celery worker --concurrency=1
     image: web
