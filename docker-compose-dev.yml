@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile-dev
     volumes:
       - './:/usr/src/app'
-    command: celery -A project.celery worker
+    command: celery -A project.celery worker --concurrency=1
     environment:
       - FLASK_APP=project/__init__.py
       - FLASK_ENV=development
